@@ -7,17 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.Stack;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
@@ -154,6 +144,12 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 				boolean isRelativeToChangelogFile = Boolean.parseBoolean(atts
 						.getValue("relativeToChangelogFile"));
 
+				String resourceFilterDef = atts.getValue("resourceFilter");
+				IncludeAllResourceFilter resourceFilter = null;
+				if (resourceFilterDef != null) {
+					resourceFilter = (IncludeAllResourceFilter) Class.forName(resourceFilterDef).newInstance();
+				}
+
 				if (isRelativeToChangelogFile) {
 					File changeLogFile = new File(databaseChangeLog
 							.getPhysicalFilePath());
@@ -181,6 +177,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 				boolean foundResource = false;
 
                 Set<String> seenPaths = new HashSet<String>();
+				List<String> includedChangeLogs = new LinkedList<String>();
 				for (URL fileUrl : resources) {
 					if (!fileUrl.toExternalForm().startsWith("file:")) {
                         if (fileUrl.toExternalForm().startsWith("jar:file:") || fileUrl.toExternalForm().startsWith("wsjar:file:") || fileUrl.toExternalForm().startsWith("zip:")) {
@@ -209,9 +206,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
                                 continue;
                             }
 
-                            if (handleIncludedChangeLog(path, false, databaseChangeLog.getPhysicalFilePath())) {
-								foundResource = true;
-							}
+							includedChangeLogs.add(path);
 						}
 					} else {
                         String path = pathName + file.getName();
@@ -219,9 +214,16 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
                             log.debug("already included "+path);
                             continue;
                         }
-                        if (handleIncludedChangeLog(path, false, databaseChangeLog.getPhysicalFilePath())) {
-							foundResource = true;
-						}
+                        includedChangeLogs.add(path);
+					}
+				}
+				if (resourceFilter != null) {
+					includedChangeLogs = resourceFilter.filter(includedChangeLogs);
+				}
+
+				for (String path : includedChangeLogs) {
+					if (handleIncludedChangeLog(path, false, databaseChangeLog.getPhysicalFilePath())) {
+						foundResource = true;
 					}
 				}
 
