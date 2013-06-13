@@ -147,7 +147,8 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 				String resourceFilterDef = atts.getValue("resourceFilter");
 				IncludeAllResourceFilter resourceFilter = null;
 				if (resourceFilterDef != null) {
-					resourceFilter = (IncludeAllResourceFilter) Class.forName(resourceFilterDef).newInstance();
+					resourceFilter = (IncludeAllResourceFilter) Class.forName(resourceFilterDef,
+                                                        true,resourceAccessor.toClassLoader()).newInstance();
 				}
 
 				if (isRelativeToChangelogFile) {
