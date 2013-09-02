@@ -3,6 +3,7 @@ package liquibase.parser.core.xml;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -13,6 +14,7 @@ import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import liquibase.Liquibase;
 import liquibase.change.Change;
 import liquibase.change.ChangeFactory;
 import liquibase.change.ChangeWithColumns;
@@ -147,8 +149,14 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 				String resourceFilterDef = atts.getValue("resourceFilter");
 				IncludeAllResourceFilter resourceFilter = null;
 				if (resourceFilterDef != null) {
-					resourceFilter = (IncludeAllResourceFilter) Class.forName(resourceFilterDef,
-                                                        true,resourceAccessor.toClassLoader()).newInstance();
+                    Class<IncludeAllResourceFilter> resourceFilterClass = (Class<IncludeAllResourceFilter>) Class.forName(resourceFilterDef,
+                            true,resourceAccessor.toClassLoader());
+                    resourceFilter = resourceFilterClass.newInstance();
+
+                    Object liquibaseInstance = changeLogParameters.getValue(Liquibase.class.getCanonicalName());
+                    if (liquibaseInstance instanceof Liquibase) {
+                        resourceFilter.setLiquibase((Liquibase)liquibaseInstance);
+                    }
 				}
 
 				if (isRelativeToChangelogFile) {
@@ -228,9 +236,11 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 					}
 				}
 
-				if (!foundResource) {
-					throw new SAXException( "Could not find directory or directory was empty for includeAll '" + pathName + "'");
-				}
+//				if (!foundResource) {
+//					throw new SAXException( "Could not find directory or directory was empty for includeAll '" + pathName + "'");
+//				}
+                                log.warning("Could not find directory or directory was empty for includeAll '" + pathName + "'");
+
 			} else if (changeSet == null && "changeSet".equals(qName)) {
 				boolean alwaysRun = false;
 				boolean runOnChange = false;
