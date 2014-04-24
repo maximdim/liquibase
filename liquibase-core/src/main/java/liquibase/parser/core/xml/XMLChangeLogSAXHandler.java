@@ -173,7 +173,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 				log.debug("Using file opener for includeAll: " + resourceAccessor.toString());
 				boolean isRelativeToChangelogFile = Boolean.parseBoolean(atts.getValue("relativeToChangelogFile"));
 
-                String resourceFilterDef = atts.getValue("resourceFilter");
+                String resourceFilterDef = atts.getValue("filter");
                 IncludeAllFilter resourceFilter = null;
                 if (resourceFilterDef != null) {
                     resourceFilter = (IncludeAllFilter) Class.forName(resourceFilterDef).newInstance();
@@ -279,7 +279,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 					}
 				}
 				if (resourceFilter != null) {
-					includedChangeLogs = resourceFilter.filter(includedChangeLogs);
+					includedChangeLogs = resourceFilter.filter(includedChangeLogs, changeLogParameters);
 				}
 
 				for (String path : includedChangeLogs) {
@@ -289,7 +289,8 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 				}
 
 				if (!foundResource) {
-					throw new SAXException("Could not find directory or directory was empty for includeAll '" + pathName + "'");
+                                	//some filters can filter out all changeLogs
+                                	log.warning("Could not find directory or directory was empty for includeAll '" + pathName + "'");
 				}
 			} else if (changeSet == null && "changeSet".equals(qName)) {
 				boolean alwaysRun = false;
